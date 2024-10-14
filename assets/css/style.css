@@ -185,7 +185,7 @@ article {
 .icon-box {
   position: relative;
   background: var(--border-gradient-onyx);
-  width: 30px;
+  width: 90px;
   height: 30px;
   border-radius: 8px;
   display: flex;
