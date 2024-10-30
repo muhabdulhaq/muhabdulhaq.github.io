@@ -158,6 +158,18 @@ html { font-family: var(--ff-poppins); }
 body { background: var(--smoky-black); }
 
 
+.project-details {
+    display: none; /* Hidden by default */
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.project-details.visible {
+    display: block; /* Show when toggled */
+}
 
 
 
