@@ -1332,17 +1332,22 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         if (window.location.hash === '#projects') {
-            // Find and "click" the Projects button to activate it
+            // Remove the active class from all navbar links
             document.querySelectorAll('.navbar-link').forEach(button => button.classList.remove('active'));
+
+            // Find the Projects tab and make it active
             const projectsButton = document.querySelector('.navbar-link[data-nav-link=""]');
             if (projectsButton) {
                 projectsButton.classList.add('active');
-                document.querySelectorAll('[data-page]').forEach(el => el.classList.remove('active'));
-                document.querySelector('[data-page="projects"]').classList.add('active');
             }
+
+            // Remove 'active' from all sections and activate the Projects section
+            document.querySelectorAll('[data-page]').forEach(el => el.classList.remove('active'));
+            document.querySelector('[data-page="projects"]').classList.add('active');
         }
     });
 </script>
+
   
 </body>
 
