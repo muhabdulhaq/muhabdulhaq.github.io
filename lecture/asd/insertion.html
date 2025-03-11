@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insertion Sort Visualization with Sound</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        #array-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            margin-top: 20px;
+        }
+        .bar {
+            width: 30px;
+            background-color: #4CAF50;
+            display: inline-block;
+            text-align: center;
+            color: white;
+            border-radius: 5px;
+            position: relative;
+        }
+        .bar span {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            color: black;
+            font-size: 14px;
+        }
+        .active {
+            background-color: #ff4d4d;
+        }
+        .swapped {
+            background-color: #ffa500;
+        }
+        button, input {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover, input:hover {
+            background-color: #45a049;
+        }
+        input {
+            width: 100px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+    <label for="num-elements">Number of Elements: </label>
+    <input type="number" id="num-elements" value="10" min="5" max="50">
+    <label for="speed">Speed (ms): </label>
+    <input type="number" id="speed" value="300" min="50" max="1000">
+</div>
+
+<div id="array-container"></div>
+<button onclick="startInsertionSort()">Start Insertion Sort</button>
+
+<!-- Add sound for element movement -->
+<audio id="move-sound" src="beep-07.wav" preload="auto"></audio>
+
+<script>
+    let array = [];
+    const arrayContainer = document.getElementById("array-container");
+    const moveSound = document.getElementById("move-sound");
+
+    // Function to generate random values for the array
+    function generateRandomArray(numElements) {
+        array = [];
+        for (let i = 0; i < numElements; i++) {
+            array.push(Math.floor(Math.random() * 100) + 1); // Random values between 1 and 100
+        }
+    }
+
+    // Create the bars for the array visualization
+    function createArrayVisualization() {
+        arrayContainer.innerHTML = "";
+        for (let i = 0; i < array.length; i++) {
+            const bar = document.createElement("div");
+            bar.classList.add("bar");
+            bar.style.height = array[i] * 4 + "px"; // height scaling factor
+            const value = document.createElement("span");
+            value.textContent = array[i];  // Display the value inside the bar
+            bar.appendChild(value);
+            arrayContainer.appendChild(bar);
+        }
+    }
+
+    // Play sound when elements move
+    function playMoveSound() {
+        moveSound.currentTime = 0;  // Reset the sound to the start
+        moveSound.play();  // Play the sound
+    }
+
+    // Insertion Sort Algorithm with sound
+    async function insertionSort(speed) {
+        const bars = document.querySelectorAll(".bar");
+        let n = array.length;
+
+        for (let i = 1; i < n; i++) {
+            let key = array[i];
+            let j = i - 1;
+
+            // Highlight the current element being inserted
+            bars[i].classList.add("active");
+
+            // Move elements of array[0..i-1] that are greater than key to one position ahead
+            while (j >= 0 && array[j] > key) {
+                bars[j].classList.add("active");
+                bars[j + 1].style.height = array[j] * 4 + "px"; // Visualize the move
+                bars[j + 1].children[0].textContent = array[j];  // Update the value
+
+                // Play the sound when an element moves
+                playMoveSound();
+
+                // Visualize the comparison
+                await new Promise(resolve => setTimeout(resolve, speed));
+
+                array[j + 1] = array[j]; // Shift the element
+                j = j - 1;
+            }
+
+            array[j + 1] = key;
+            bars[j + 1].style.height = key * 4 + "px"; // Update the key position
+            bars[j + 1].children[0].textContent = key; // Update the key value
+
+            // Reset active class after insertion
+            bars[i].classList.remove("active");
+            for (let k = 0; k < n; k++) {
+                bars[k].classList.remove("active");
+            }
+
+            // Pause before the next iteration
+            await new Promise(resolve => setTimeout(resolve, speed));
+        }
+    }
+
+    // Start Insertion Sort and visualize it
+    function startInsertionSort() {
+        const numElements = parseInt(document.getElementById("num-elements").value);
+        const speed = parseInt(document.getElementById("speed").value);
+
+        generateRandomArray(numElements);
+        createArrayVisualization();
+        insertionSort(speed);
+    }
+
+    // Initialize the page with a default array
+    generateRandomArray(10);
+    createArrayVisualization();
+</script>
+
+</body>
+</html>

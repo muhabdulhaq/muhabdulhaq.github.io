@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Sort Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        #array-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            margin-top: 20px;
+        }
+        .bar {
+            width: 30px;
+            background-color: #4CAF50;
+            display: inline-block;
+            text-align: center;
+            color: white;
+            border-radius: 5px;
+            position: relative;
+        }
+        .bar span {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            color: black;
+            font-size: 14px;
+        }
+        .active {
+            background-color: #ff4d4d;
+        }
+        .swapped {
+            background-color: #ffa500;
+        }
+        button, input {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover, input:hover {
+            background-color: #45a049;
+        }
+        input {
+            width: 100px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+    <label for="num-elements">Number of Elements: </label>
+    <input type="number" id="num-elements" value="10" min="5" max="50">
+    <label for="speed">Speed (ms): </label>
+    <input type="number" id="speed" value="300" min="50" max="1000">
+</div>
+
+<div id="array-container"></div>
+<button onclick="startBubbleSort()">Start Bubble Sort</button>
+
+<script>
+    let array = [];
+    const arrayContainer = document.getElementById("array-container");
+
+    // Function to generate random values for the array
+    function generateRandomArray(numElements) {
+        array = [];
+        for (let i = 0; i < numElements; i++) {
+            array.push(Math.floor(Math.random() * 100) + 1); // Random values between 1 and 100
+        }
+    }
+
+    // Create the bars for the array visualization
+    function createArrayVisualization() {
+        arrayContainer.innerHTML = "";
+        for (let i = 0; i < array.length; i++) {
+            const bar = document.createElement("div");
+            bar.classList.add("bar");
+            bar.style.height = array[i] * 4 + "px"; // height scaling factor
+            const value = document.createElement("span");
+            value.textContent = array[i];  // Display the value inside the bar
+            bar.appendChild(value);
+            arrayContainer.appendChild(bar);
+        }
+    }
+
+    // Bubble Sort Algorithm
+    async function bubbleSort(speed) {
+        const bars = document.querySelectorAll(".bar");
+        let n = array.length;
+
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n - 1 - i; j++) {
+                bars[j].classList.add("active");
+                bars[j + 1].classList.add("active");
+
+                // Visualize comparison
+                await new Promise(resolve => setTimeout(resolve, speed));
+
+                if (array[j] > array[j + 1]) {
+                    // Swap the elements in the array
+                    [array[j], array[j + 1]] = [array[j + 1], array[j]];
+
+                    // Swap the elements in the bars
+                    bars[j].style.height = array[j] * 4 + "px";
+                    bars[j + 1].style.height = array[j + 1] * 4 + "px";
+
+                    // Update the displayed values
+                    bars[j].children[0].textContent = array[j];
+                    bars[j + 1].children[0].textContent = array[j + 1];
+
+                    // Mark bars as swapped
+                    bars[j].classList.add("swapped");
+                    bars[j + 1].classList.add("swapped");
+
+                    await new Promise(resolve => setTimeout(resolve, speed));
+
+                    // Remove swapped class
+                    bars[j].classList.remove("swapped");
+                    bars[j + 1].classList.remove("swapped");
+                }
+
+                // Remove active class after comparison
+                bars[j].classList.remove("active");
+                bars[j + 1].classList.remove("active");
+            }
+        }
+    }
+
+    // Start Bubble Sort and visualize it
+    function startBubbleSort() {
+        const numElements = parseInt(document.getElementById("num-elements").value);
+        const speed = parseInt(document.getElementById("speed").value);
+
+        generateRandomArray(numElements);
+        createArrayVisualization();
+        bubbleSort(speed);
+    }
+
+    // Initialize the page with a default array
+    generateRandomArray(10);
+    createArrayVisualization();
+</script>
+
+</body>
+</html>
