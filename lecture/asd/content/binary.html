@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+        }
+        #array {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .array-item {
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+        .active {
+            background-color: lightgreen;
+        }
+        input {
+            padding: 5px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Binary Search</h1>
+    <p>Masukkan angka yang ingin dicari:</p>
+    <input type="number" id="target" placeholder="Angka yang dicari">
+    <button onclick="startSearch()">Cari</button>
+
+    <div id="array"></div>
+    <p id="result"></p>
+</div>
+
+<script>
+    const array = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29];
+    let low = 0;
+    let high = array.length - 1;
+    let mid = Math.floor((low + high) / 2);
+
+    // Render array
+    function renderArray() {
+        const arrayDiv = document.getElementById('array');
+        arrayDiv.innerHTML = '';
+        for (let i = 0; i < array.length; i++) {
+            const item = document.createElement('div');
+            item.classList.add('array-item');
+            if (i === low || i === high || i === mid) {
+                item.classList.add('highlight');
+            }
+            if (i === mid) {
+                item.classList.add('active');
+            }
+            item.innerHTML = array[i];
+            arrayDiv.appendChild(item);
+        }
+    }
+
+    // Start the binary search
+    function startSearch() {
+        const target = parseInt(document.getElementById('target').value);
+        if (isNaN(target)) {
+            alert('Masukkan angka yang valid.');
+            return;
+        }
+
+        low = 0;
+        high = array.length - 1;
+        let resultText = '';
+
+        function binarySearch() {
+            if (low > high) {
+                resultText = `Angka ${target} tidak ditemukan.`;
+                document.getElementById('result').innerText = resultText;
+                return;
+            }
+
+            mid = Math.floor((low + high) / 2);
+            renderArray();
+
+            setTimeout(() => {
+                if (array[mid] === target) {
+                    resultText = `Angka ${target} ditemukan di indeks ${mid}.`;
+                    document.getElementById('result').innerText = resultText;
+                } else if (array[mid] < target) {
+                    low = mid + 1;
+                    binarySearch();
+                } else {
+                    high = mid - 1;
+                    binarySearch();
+                }
+            }, 1000);
+        }
+
+        binarySearch();
+    }
+</script>
+
+</body>
+</html>
