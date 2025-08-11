@@ -154,6 +154,18 @@
 
   let DB = structuredClone(defaultData);
 
+  // Normalize any DB payload coming from Firebase to guarantee required fields
+  function normalizeDB(data){
+    const base = structuredClone(defaultData);
+    if(data && typeof data === 'object'){
+      if(Array.isArray(data.teams)) base.teams = data.teams;
+      if(Array.isArray(data.schedule)) base.schedule = data.schedule;
+      if(data.results && typeof data.results === 'object') base.results = data.results;
+    }
+    if(!base.results) base.results = {};
+    return base;
+  }
+
   // Helpers
   function teamName(code){ return (DB.teams.find(t=>t.code===code)||{}).name||code; }
   function teamBadge(code){ return `<span class="badge" title="Team ${code}">${code}</span>`; }
@@ -165,8 +177,22 @@
   // Backend sync
   async function initLive(){
     const ref = rtdb.ref(DB_PATH);
-    ref.on('value', (snap)=>{ const val=snap.val(); if(val){ DB=val; renderAll(); }});
-    const once = await ref.get(); if(!once.exists()) await ref.set(DB);
+    // Real-time listener with explicit error handler (helps diagnose rules issues)
+    ref.on('value', (snap)=>{
+      const val = snap.val();
+      if(val){ DB = normalizeDB(val); renderAll(); }
+    }, (err)=>{
+      console.error('RTDB listener error', err);
+      setBanner('offline', 'Firebase listener error: ' + (err?.code || err?.message || err));
+    });
+    // First load / seed
+    try {
+      const once = await ref.get();
+      if(!once.exists()) await ref.set(DB);
+    } catch(e){
+      console.error('RTDB get/set error', e);
+      throw e; // bubble up so outer catch shows Offline
+    }
     return ref;
   }
   function saveLive(ref){ return ref.set(DB); }
@@ -194,7 +220,7 @@
       const grid=document.createElement('div'); grid.className='match-grid';
       bySlot[slot].sort((a,b)=>a.court-b.court).forEach(m=>{
         const card=document.createElement('div'); card.className='match-card';
-        const res=DB.results[m.id]; const sets=(res&&res.sets)||emptySets(DB.meta.rules?.sets||3);
+        const res=(DB.results||{})[m.id]; const sets=(res&&res.sets)||emptySets(DB.meta.rules?.sets||3);
         const rows = sets.map((s,i)=>
           `<div class="set-row"><span class="small muted">Set ${i+1}</span>
             <input class="score" aria-label="${teamName(m.home)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="a" value="${s.a}" />
@@ -231,17 +257,20 @@
     // events (delegate)
     wrap.addEventListener('input', async (e)=>{
       const t=e.target; if(!t.matches('.score')) return; const mid=t.dataset.mid, i=+t.dataset.i, f=t.dataset.f; const val=t.value;
-      const sets=(DB.results[mid]?.sets)||emptySets(DB.meta.rules?.sets||3); sets[i][f]=val; (DB.results[mid]??={}).sets=sets; updateStatus(mid); await saveLive(window._ref); renderStandings();
+      const R = DB.results || (DB.results = {});
+      const sets = (R[mid]?.sets) || emptySets(DB.meta.rules?.sets||3);
+      sets[i][f] = val;
+      R[mid] = { sets }; updateStatus(mid); await saveLive(window._ref); renderStandings();
     });
     wrap.addEventListener('click', async (e)=>{
       const b=e.target.closest('button'); if(!b) return; const act=b.dataset.act, mid=b.dataset.mid;
-      if(act==='clear'){ (DB.results[mid]={sets:emptySets(DB.meta.rules?.sets||3)}); await saveLive(window._ref); renderSchedule(); renderStandings(); }
+      if(act==='clear'){ ( (DB.results || (DB.results={})) [mid] = { sets: emptySets(DB.meta.rules?.sets||3) } ); await saveLive(window._ref); renderSchedule(); renderStandings(); }
       if(act==='save'){ await saveLive(window._ref); alert('Saved'); }
     });
   }
 
   function updateStatus(mid){
-    const sets=(DB.results[mid]?.sets)||[]; let valid=true; for(const s of sets){ if(!validateSet(s.a,s.b)){ valid=false; break; } }
+    const sets = (DB.results && DB.results[mid] ? DB.results[mid].sets : []); let valid=true; for(const s of sets){ if(!validateSet(s.a,s.b)){ valid=false; break; } }
     const who= valid? winnerFromSets(sets): null; const el=document.getElementById('stat-'+mid); const m=DB.schedule.find(x=>x.id===mid);
     if(!el||!m) return; if(!valid) el.innerHTML='<span class="small" style="color:#b91c1c">Invalid scores (≥21 & win-by-2)</span>'; else if(!who) el.innerHTML='<span class="small muted">Not finished</span>'; else el.innerHTML=`<span class="small" style="color:#16a34a">Winner: <strong>${who==='A'?teamName(m.home):teamName(m.away)}</strong></span>`;
   }
@@ -308,7 +337,7 @@
   renderAll();
   (async ()=>{
     try{ wireTabs(); wireButtons(); window._ref=await initLive(); setBanner('online','Connected ✓ Live scores are syncing'); renderAll(); }
-    catch(e){ console.warn('Live init failed',e); setBanner('offline','Offline mode — showing local data'); renderAll(); }
+    catch(e){ console.warn('Live init failed',e); setBanner('offline','Offline mode — check Firebase rules / databaseURL (' + (e?.code || e?.message || 'unknown error') + ')'); renderAll(); }
   })();
   </script>
 </body>
