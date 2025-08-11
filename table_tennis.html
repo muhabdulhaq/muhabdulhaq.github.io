@@ -167,7 +167,7 @@
   let DB = structuredClone(defaultData);
 
   // ==== Admin PIN (Panitia only) ====
-  const ADMIN_PIN = '2580'; // <-- change this PIN as you like
+  const ADMIN_PIN = '1608'; // <-- change this PIN as you like
   let isAdmin = false;
   function loadAdmin(){ try{ isAdmin = localStorage.getItem('tt_admin')==='1'; }catch{ isAdmin=false; } }
   function setAdmin(flag){ isAdmin = !!flag; try{ if(isAdmin) localStorage.setItem('tt_admin','1'); else localStorage.removeItem('tt_admin'); }catch{} updateAdminUI(); renderSchedule(); }
@@ -384,4 +384,9 @@
   })();
   </script>
 </body>
+  <div style="position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            font-size: 6px; color: #555;">
+    &copy; 2025 Muhammad Abdul Haq
+</div>
+
 </html>
