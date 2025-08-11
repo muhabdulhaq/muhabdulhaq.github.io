@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Table Tennis Tournament — Interactive (Clean Layout)</title>
+  <style>
+    :root{--muted:#64748b;--line:#e2e8f0;--ink:#0f172a;--chip:#f1f5f9}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:#f8fafc;color:var(--ink)}
+    .container{max-width:1280px;margin:0 auto;padding:16px}
+    h1{font-size:clamp(20px,2.6vw,32px);margin:0 0 6px}
+    .wrap{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(15,23,42,.06)}
+    .muted{color:var(--muted)} .small{font-size:12px}
+    .chip{background:var(--chip);padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;margin:2px;display:inline-block}
+
+    /* Tabs */
+    .tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow:auto}
+    .tab{padding:10px 14px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;background:#fff;cursor:pointer;white-space:nowrap}
+    .tab[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .tabpanel{display:none}
+    .tabpanel.active{display:block}
+
+    /* Standings table: responsive */
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    thead th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .responsive-table{width:100%}
+    @media(max-width:700px){
+      .responsive-table thead{display:none}
+      .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td{display:block;width:100%}
+      .responsive-table tr{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;background:#fff}
+      .responsive-table td{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+      .responsive-table td:last-child{border-bottom:0}
+      .responsive-table td::before{content:attr(data-col);font-weight:600;color:var(--muted)}
+    }
+
+    /* Schedule layout (cleaner) */
+    .slot{border:1px solid var(--line);border-radius:12px;padding:12px}
+    .slot-title{font-weight:700;margin-bottom:8px}
+    .match-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+    .match-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+    .flex{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .name-line{font-weight:600;font-size:16px;white-space:nowrap}
+    .badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #cbd5e1;border-radius:999px;font-size:12px;color:var(--ink);background:#fff;margin-left:6px}
+    .set-row{display:grid;grid-template-columns:64px 1fr 16px 1fr;align-items:center;gap:8px;margin:6px 0}
+    .score{max-width:90px;width:100%;text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:16px}
+    .score::-webkit-outer-spin-button,.score::-webkit-inner-spin-button{appearance:none;margin:0}
+    .score[type=number]{appearance:textfield}
+
+    /* Status banner */
+    #status-banner{display:none;margin:8px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+
+    /* Pairs cards: compact tiles (no full-width stretch) */
+    #teams-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+    #teams-grid>.card{width:240px;flex:0 0 240px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="wrap" style="align-items:flex-end;justify-content:space-between">
+      <div>
+        <h1>Table Tennis Tournament</h1>
+        <div class="muted small">Interactive schedule & standings • Shared via Firebase • Best of 3 to 21 (win-by-2)</div>
+        <div style="margin-top:6px">
+          <span class="chip">Sets: 3</span>
+          <span class="chip">Target: 21</span>
+          <span class="chip">Win by: 2</span>
+        </div>
+      </div>
+      <div class="wrap">
+        <button class="btn" id="btn-export">Export JSON</button>
+        <label class="btn" for="inp-import" role="button">Import JSON</label>
+        <input id="inp-import" type="file" accept="application/json" style="display:none" />
+        <button class="btn" id="btn-reset">Reset</button>
+      </div>
+    </header>
+
+    <div id="status-banner" aria-live="polite"></div>
+
+    <section class="card">
+      <div class="tabs" role="tablist" aria-label="Main tabs">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="tab-schedule" id="tabbtn-schedule">Schedule</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="tab-standings" id="tabbtn-standings">Standings</button>
+      </div>
+
+      <div id="tab-schedule" class="tabpanel active" role="tabpanel" aria-labelledby="tabbtn-schedule">
+        <div id="schedule-list" class="grid" style="gap:16px"></div>
+      </div>
+
+      <div id="tab-standings" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-standings">
+        <div style="overflow:auto">
+          <table id="table-standings" class="responsive-table" aria-label="Standings"></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="teams-card">
+      <h2>Pairs</h2>
+      <div id="teams-grid"></div>
+    </section>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBkEzMVdvGEipOHsPvUiSWR5t7oEfHTnyQ",
+    authDomain: "tabletennis-44feb.firebaseapp.com",
+    databaseURL: "https://tabletennis-44feb-default-rtdb.firebaseio.com",
+    projectId: "tabletennis-44feb",
+    storageBucket: "tabletennis-44feb.firebasestorage.app",
+    messagingSenderId: "66554309754",
+    appId: "1:66554309754:web:ded58ca57b4f1e51899fc3"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const rtdb = firebase.database();
+  const DB_PATH = 'tt_shared/v4';
+
+  // Default data
+  const defaultData = {
+    meta: { title: 'Table Tennis Tournament', rules: { sets: 3, minToWin: 21, winBy: 2 } },
+    teams: [
+      { code: 'A', name: 'Yogie/Kaspul', players: ['Yogie','Kaspul'] },
+      { code: 'B', name: 'Faadhil/Firdaus', players: ['Faadhil','Firdaus'] },
+      { code: 'C', name: 'Ridwan/Bagus', players: ['Ridwan','Bagus'] },
+      { code: 'D', name: 'Haqi/Aji', players: ['Haqi','Aji'] },
+      { code: 'E', name: 'Angga/Noe', players: ['Angga','Noe'] },
+      { code: 'F', name: 'Eko/Fitrah', players: ['Eko','Fitrah'] }
+    ],
+    schedule: [
+      { id:'1A', slot:1, court:1, home:'A', away:'F', ref:'C1' },
+      { id:'1B', slot:1, court:2, home:'B', away:'E', ref:'D1' },
+      { id:'2A', slot:2, court:1, home:'C', away:'D', ref:'A1' },
+      { id:'2B', slot:2, court:2, home:'E', away:'F', ref:'B1' },
+      { id:'3A', slot:3, court:1, home:'A', away:'C', ref:'E1' },
+      { id:'3B', slot:3, court:2, home:'B', away:'D', ref:'F1' },
+      { id:'4A', slot:4, court:1, home:'A', away:'E', ref:'C2' },
+      { id:'4B', slot:4, court:2, home:'F', away:'B', ref:'D2' },
+      { id:'5A', slot:5, court:1, home:'C', away:'E', ref:'A2' },
+      { id:'5B', slot:5, court:2, home:'D', away:'F', ref:'B2' },
+      { id:'6A', slot:6, court:1, home:'A', away:'D', ref:'E2' },
+      { id:'6B', slot:6, court:2, home:'B', away:'C', ref:'F2' },
+      { id:'7A', slot:7, court:1, home:'A', away:'B', ref:'C1' },
+      { id:'8A', slot:8, court:1, home:'D', away:'E', ref:'A1' },
+      { id:'8B', slot:8, court:2, home:'C', away:'F', ref:'B1' }
+    ],
+    results: {}
+  };
+
+  let DB = structuredClone(defaultData);
+
+  // Helpers
+  function teamName(code){ return (DB.teams.find(t=>t.code===code)||{}).name||code; }
+  function teamBadge(code){ return `<span class="badge" title="Team ${code}">${code}</span>`; }
+  function validateSet(a,b){ if(a===''||b==='') return true; a=+a; b=+b; if([a,b].some(x=>Number.isNaN(x)||x<0)) return false; const max=Math.max(a,b), diff=Math.abs(a-b); if(max<21) return false; if(diff<2) return false; return true; }
+  function winnerFromSets(sets){ let wA=0,wB=0; for(const s of sets){ if(!s) continue; const {a,b}=s; if(a===''||b==='') continue; if(!validateSet(a,b)) return null; if(+a>+b) wA++; else wB++; } if(!wA && !wB) return null; if(wA===wB) return null; return wA>wB?'A':'B'; }
+  function emptySets(n=3){ return Array.from({length:n},()=>({a:'',b:''})); }
+  function refNameFromCode(code){ const letter=code[0]?.toUpperCase(); const idx=(code[1]==='2')?1:0; const t=DB.teams.find(t=>t.code===letter); return t? t.players[idx]: code; }
+
+  // Backend sync
+  async function initLive(){
+    const ref = rtdb.ref(DB_PATH);
+    ref.on('value', (snap)=>{ const val=snap.val(); if(val){ DB=val; renderAll(); }});
+    const once = await ref.get(); if(!once.exists()) await ref.set(DB);
+    return ref;
+  }
+  function saveLive(ref){ return ref.set(DB); }
+
+  // Render Pairs
+  function renderTeams(){
+    const box=document.getElementById('teams-grid');
+    if(!box) return;
+    box.innerHTML='';
+    DB.teams.forEach(t=>{
+      const el=document.createElement('div'); el.className='card';
+      el.innerHTML=`<div class=\"flex\" style=\"justify-content:space-between\"><strong>${t.name}</strong><span class=\"badge\">${t.code}</span></div>`;
+      box.appendChild(el);
+    });
+  }
+
+  // Render Schedule (CLEAN)
+  function renderSchedule(){
+    const wrap=document.getElementById('schedule-list'); wrap.innerHTML='';
+    const bySlot = {}; DB.schedule.forEach(m=>{ (bySlot[m.slot]??=([])).push(m); });
+    Object.keys(bySlot).sort((a,b)=>+a-+b).forEach(slot=>{
+      const slotEl=document.createElement('div'); slotEl.className='slot';
+      slotEl.innerHTML=`<div class="slot-title">Slot ${slot}</div>`;
+
+      const grid=document.createElement('div'); grid.className='match-grid';
+      bySlot[slot].sort((a,b)=>a.court-b.court).forEach(m=>{
+        const card=document.createElement('div'); card.className='match-card';
+        const res=DB.results[m.id]; const sets=(res&&res.sets)||emptySets(DB.meta.rules?.sets||3);
+        const rows = sets.map((s,i)=>
+          `<div class="set-row"><span class="small muted">Set ${i+1}</span>
+            <input class="score" aria-label="${teamName(m.home)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="a" value="${s.a}" />
+            <span class="muted" aria-hidden="true">-</span>
+            <input class="score" aria-label="${teamName(m.away)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="b" value="${s.b}" />
+          </div>`).join('');
+        const chips = sets.map(s=> (s.a!==''&&s.b!=='')?`<span class="chip">${s.a}-${s.b}</span>`:'').join('');
+        const who = winnerFromSets(sets);
+        const status = who? `<span class="small" style="color:#16a34a">Winner: <strong>${who==='A'?teamName(m.home):teamName(m.away)}</strong></span>`:
+                            `<span class="small muted">Not finished</span>`;
+        const refName = refNameFromCode(m.ref);
+        card.innerHTML=`
+          <div class="flex" style="align-items:flex-start">
+            <div>
+              <div class="small muted">Table ${m.court} • Referee ${refName}</div>
+              <div class="name-line">${teamName(m.home)} <span class="badge">${m.home}</span> <span class="muted">vs</span> ${teamName(m.away)} <span class="badge">${m.away}</span></div>
+            </div>
+            <div class="wrap">${chips}</div>
+          </div>
+          <div style="height:6px"></div>
+          ${rows}
+          <div class="flex" style="margin-top:8px;gap:8px">
+            <div id="stat-${m.id}">${status}</div>
+            <div class="wrap">
+              <button class="btn" data-act="clear" data-mid="${m.id}">Clear</button>
+              <button class="btn primary" data-act="save" data-mid="${m.id}">Save</button>
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
+      slotEl.appendChild(grid); wrap.appendChild(slotEl);
+    });
+
+    // events (delegate)
+    wrap.addEventListener('input', async (e)=>{
+      const t=e.target; if(!t.matches('.score')) return; const mid=t.dataset.mid, i=+t.dataset.i, f=t.dataset.f; const val=t.value;
+      const sets=(DB.results[mid]?.sets)||emptySets(DB.meta.rules?.sets||3); sets[i][f]=val; (DB.results[mid]??={}).sets=sets; updateStatus(mid); await saveLive(window._ref); renderStandings();
+    });
+    wrap.addEventListener('click', async (e)=>{
+      const b=e.target.closest('button'); if(!b) return; const act=b.dataset.act, mid=b.dataset.mid;
+      if(act==='clear'){ (DB.results[mid]={sets:emptySets(DB.meta.rules?.sets||3)}); await saveLive(window._ref); renderSchedule(); renderStandings(); }
+      if(act==='save'){ await saveLive(window._ref); alert('Saved'); }
+    });
+  }
+
+  function updateStatus(mid){
+    const sets=(DB.results[mid]?.sets)||[]; let valid=true; for(const s of sets){ if(!validateSet(s.a,s.b)){ valid=false; break; } }
+    const who= valid? winnerFromSets(sets): null; const el=document.getElementById('stat-'+mid); const m=DB.schedule.find(x=>x.id===mid);
+    if(!el||!m) return; if(!valid) el.innerHTML='<span class="small" style="color:#b91c1c">Invalid scores (≥21 & win-by-2)</span>'; else if(!who) el.innerHTML='<span class="small muted">Not finished</span>'; else el.innerHTML=`<span class="small" style="color:#16a34a">Winner: <strong>${who==='A'?teamName(m.home):teamName(m.away)}</strong></span>`;
+  }
+
+  // Standings
+  const STAND_HEADERS = ['#','Pair','Played','Win','Loss','Sets (+/-)','Points (+/-)'];
+  function computeStandings(){
+    const stats={}; DB.teams.forEach(t=>stats[t.code]={team:t.code,played:0,wins:0,losses:0,setsFor:0,setsAgainst:0,pointsFor:0,pointsAgainst:0});
+    DB.schedule.forEach(m=>{
+      const r=DB.results[m.id]; if(!r||!r.sets) return; let wA=0,wB=0,pA=0,pB=0,any=false; r.sets.forEach(s=>{ if(!s||s.a===''||s.b==='') return; if(!validateSet(s.a,s.b)) return; any=true; pA+=+s.a; pB+=+s.b; if(+s.a>+s.b) wA++; else wB++; });
+      if(!any) return; const A=stats[m.home],B=stats[m.away]; A.played++; B.played++; A.setsFor+=wA; A.setsAgainst+=wB; B.setsFor+=wB; B.setsAgainst+=wA; A.pointsFor+=pA;A.pointsAgainst+=pB;B.pointsFor+=pB;B.pointsAgainst+=pA; if(wA>wB){A.wins++;B.losses++;} else if(wB>wA){B.wins++;A.losses++;}
+    });
+    const rows=Object.values(stats).sort((x,y)=> y.wins-x.wins || (y.setsFor-y.setsAgainst)-(x.setsFor-x.setsAgainst) || (y.pointsFor-y.pointsAgainst)-(x.pointsFor-x.pointsAgainst) || x.team.localeCompare(y.team));
+    return rows;
+  }
+  function renderStandings(){
+    const tbl=document.getElementById('table-standings');
+    const rows=computeStandings();
+    tbl.innerHTML = `<thead><tr>${STAND_HEADERS.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody></tbody>`;
+    const tbody=tbl.querySelector('tbody');
+    rows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      const cells=[
+        i+1,
+        `<strong>${teamName(r.team)}</strong> <span class="badge">${r.team}</span>`,
+        r.played,
+        r.wins,
+        r.losses,
+        `${r.setsFor} : ${r.setsAgainst} <span class="muted">(${r.setsFor-r.setsAgainst})</span>`,
+        `${r.pointsFor} : ${r.pointsAgainst} <span class="muted">(${r.pointsFor-r.pointsAgainst})</span>`
+      ];
+      cells.forEach((c,idx)=>{ const td=document.createElement('td'); td.setAttribute('data-col', STAND_HEADERS[idx]); td.innerHTML= c; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Tabs + Buttons + Banner
+  function wireButtons(){
+    function doExport(){ const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='tt-database.json'; a.click(); URL.revokeObjectURL(url);} 
+    function doImport(file){ if(!file) return; const rd=new FileReader(); rd.onload=async()=>{ try{ DB=JSON.parse(rd.result); await saveLive(window._ref); renderAll(); alert('Import OK'); }catch{ alert('Invalid JSON'); } }; rd.readAsText(file); }
+    function doReset(){ if(!confirm('Reset all data?')) return; DB=structuredClone(defaultData); saveLive(window._ref).then(renderAll); }
+    document.getElementById('btn-export').onclick=doExport;
+    document.getElementById('inp-import').onchange=(e)=>doImport(e.target.files?.[0]);
+    document.getElementById('btn-reset').onclick=doReset;
+  }
+  function wireTabs(){
+    const btnSched=document.getElementById('tabbtn-schedule');
+    const btnStand=document.getElementById('tabbtn-standings');
+    const tabSched=document.getElementById('tab-schedule');
+    const tabStand=document.getElementById('tab-standings');
+    function sel(which){ const s= which==='schedule'; btnSched.setAttribute('aria-selected', s); btnStand.setAttribute('aria-selected', !s); tabSched.classList.toggle('active', s); tabStand.classList.toggle('active', !s); }
+    btnSched.addEventListener('click',()=>sel('schedule'));
+    btnStand.addEventListener('click',()=>sel('standings'));
+  }
+  function setBanner(kind, msg){
+    const el = document.getElementById('status-banner'); if(!el) return;
+    const colors = { loading:'#fef9c3', online:'#dcfce7', offline:'#fee2e2' };
+    el.style.display='block'; el.style.background=colors[kind]||'#f1f5f9'; el.textContent=msg;
+  }
+  function renderAll(){ renderTeams(); renderSchedule(); renderStandings(); }
+
+  // Start
+  setBanner('loading','Loading… connecting to live database');
+  renderAll();
+  (async ()=>{
+    try{ wireTabs(); wireButtons(); window._ref=await initLive(); setBanner('online','Connected ✓ Live scores are syncing'); renderAll(); }
+    catch(e){ console.warn('Live init failed',e); setBanner('offline','Offline mode — showing local data'); renderAll(); }
+  })();
+  </script>
+</body>
+</html>
