@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Table Tennis Tournament — Interactive (Clean Layout)</title>
+  <title>Table Tennis Tournament — PPI TMU 2025</title>
   <style>
     :root{--muted:#64748b;--line:#e2e8f0;--ink:#0f172a;--chip:#f1f5f9}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:#f8fafc;color:var(--ink)}
@@ -63,7 +63,7 @@
     <header class="wrap" style="align-items:flex-end;justify-content:space-between">
       <div>
         <h1>Table Tennis Tournament</h1>
-        <div class="muted small">Interactive schedule & standings • Shared via Firebase • Best of 3 to 21 (win-by-2)</div>
+        <div class="muted small">PPI TMU Tournament 2025 Standings • Best of 3 to 21 (win-by-2)</div>
         <div style="margin-top:6px">
           <span class="chip">Sets: 3</span>
           <span class="chip">Target: 21</span>
@@ -71,8 +71,8 @@
         </div>
       </div>
       <div class="wrap">
-        <button class="btn" id="btn-export">Export JSON</button>
-        <label class="btn" for="inp-import" role="button">Import JSON</label>
+        <button class="btn" id="btn-export">Export</button>
+        <label class="btn" for="inp-import" role="button">Import</label>
         <input id="inp-import" type="file" accept="application/json" style="display:none" />
         <button class="btn" id="btn-reset">Reset</button>
       </div>
@@ -246,7 +246,6 @@
             <div id="stat-${m.id}">${status}</div>
             <div class="wrap">
               <button class="btn" data-act="clear" data-mid="${m.id}">Clear</button>
-              <button class="btn primary" data-act="save" data-mid="${m.id}">Save</button>
             </div>
           </div>`;
         grid.appendChild(card);
