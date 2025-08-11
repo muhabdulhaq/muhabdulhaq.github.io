@@ -71,10 +71,13 @@
         </div>
       </div>
       <div class="wrap">
-        <button class="btn" id="btn-export">Export</button>
-        <label class="btn" for="inp-import" role="button">Import</label>
-        <input id="inp-import" type="file" accept="application/json" style="display:none" />
-        <button class="btn" id="btn-reset">Reset</button>
+        <div id="admin-only" class="wrap">
+          <button class="btn" id="btn-export">Export JSON</button>
+          <label class="btn" for="inp-import" role="button">Import JSON</label>
+          <input id="inp-import" type="file" accept="application/json" style="display:none" />
+          <button class="btn" id="btn-reset">Reset</button>
+        </div>
+        <button class="btn" id="btn-admin">Panitia Login</button>
       </div>
     </header>
 
@@ -154,6 +157,18 @@
 
   let DB = structuredClone(defaultData);
 
+  // ==== Admin PIN (Panitia only) ====
+  const ADMIN_PIN = '2580'; // <-- change this PIN as you like
+  let isAdmin = false;
+  function loadAdmin(){ try{ isAdmin = localStorage.getItem('tt_admin')==='1'; }catch{ isAdmin=false; } }
+  function setAdmin(flag){ isAdmin = !!flag; try{ if(isAdmin) localStorage.setItem('tt_admin','1'); else localStorage.removeItem('tt_admin'); }catch{} updateAdminUI(); renderSchedule(); }
+  function updateAdminUI(){
+    const adminWrap = document.getElementById('admin-only');
+    if(adminWrap) adminWrap.style.display = isAdmin? 'flex':'none';
+    const btn = document.getElementById('btn-admin');
+    if(btn) btn.textContent = isAdmin? 'Logout Admin':'Panitia Login';
+  }
+
   // Normalize any DB payload coming from Firebase to guarantee required fields
   function normalizeDB(data){
     const base = structuredClone(defaultData);
@@ -216,16 +231,15 @@
     Object.keys(bySlot).sort((a,b)=>+a-+b).forEach(slot=>{
       const slotEl=document.createElement('div'); slotEl.className='slot';
       slotEl.innerHTML=`<div class="slot-title">Slot ${slot}</div>`;
-
       const grid=document.createElement('div'); grid.className='match-grid';
       bySlot[slot].sort((a,b)=>a.court-b.court).forEach(m=>{
         const card=document.createElement('div'); card.className='match-card';
         const res=(DB.results||{})[m.id]; const sets=(res&&res.sets)||emptySets(DB.meta.rules?.sets||3);
         const rows = sets.map((s,i)=>
           `<div class="set-row"><span class="small muted">Set ${i+1}</span>
-            <input class="score" aria-label="${teamName(m.home)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="a" value="${s.a}" />
+            <input class="score" aria-label="${teamName(m.home)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="a" value="${s.a}" ${isAdmin ? '' : 'disabled'} />
             <span class="muted" aria-hidden="true">-</span>
-            <input class="score" aria-label="${teamName(m.away)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="b" value="${s.b}" />
+            <input class="score" aria-label="${teamName(m.away)} score, set ${i+1}" inputmode="numeric" pattern="[0-9]*" data-mid="${m.id}" data-i="${i}" data-f="b" value="${s.b}" ${isAdmin ? '' : 'disabled'} />
           </div>`).join('');
         const chips = sets.map(s=> (s.a!==''&&s.b!=='')?`<span class="chip">${s.a}-${s.b}</span>`:'').join('');
         const who = winnerFromSets(sets);
@@ -244,9 +258,7 @@
           ${rows}
           <div class="flex" style="margin-top:8px;gap:8px">
             <div id="stat-${m.id}">${status}</div>
-            <div class="wrap">
-              <button class="btn" data-act="clear" data-mid="${m.id}">Clear</button>
-            </div>
+            ${ isAdmin ? '<div class="wrap"><button class="btn" data-act="clear" data-mid="'+m.id+'">Clear<\/button><button class="btn primary" data-act="save" data-mid="'+m.id+'">Save<\/button><\/div>' : '' }
           </div>`;
         grid.appendChild(card);
       });
@@ -255,16 +267,16 @@
 
     // events (delegate)
     wrap.addEventListener('input', async (e)=>{
-      const t=e.target; if(!t.matches('.score')) return; const mid=t.dataset.mid, i=+t.dataset.i, f=t.dataset.f; const val=t.value;
+      const t=e.target; if(!t.matches('.score')) return; if(!isAdmin) { e.preventDefault(); return; } const mid=t.dataset.mid, i=+t.dataset.i, f=t.dataset.f; const val=t.value;
       const R = DB.results || (DB.results = {});
       const sets = (R[mid]?.sets) || emptySets(DB.meta.rules?.sets||3);
       sets[i][f] = val;
       R[mid] = { sets }; updateStatus(mid); await saveLive(window._ref); renderStandings();
     });
     wrap.addEventListener('click', async (e)=>{
-      const b=e.target.closest('button'); if(!b) return; const act=b.dataset.act, mid=b.dataset.mid;
+      const b=e.target.closest('button'); if(!b) return; if(!isAdmin) return; const act=b.dataset.act, mid=b.dataset.mid;
       if(act==='clear'){ ( (DB.results || (DB.results={})) [mid] = { sets: emptySets(DB.meta.rules?.sets||3) } ); await saveLive(window._ref); renderSchedule(); renderStandings(); }
-      if(act==='save'){ await saveLive(window._ref); alert('Saved'); }
+      if(act==='save'){ await saveLive(window._ref); setBanner('online','Saved ✓'); setTimeout(()=>setBanner('online','Connected ✓ Live scores are syncing'),1200); }
     });
   }
 
@@ -308,13 +320,36 @@
 
   // Tabs + Buttons + Banner
   function wireButtons(){
-    function doExport(){ const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='tt-database.json'; a.click(); URL.revokeObjectURL(url);} 
-    function doImport(file){ if(!file) return; const rd=new FileReader(); rd.onload=async()=>{ try{ DB=JSON.parse(rd.result); await saveLive(window._ref); renderAll(); alert('Import OK'); }catch{ alert('Invalid JSON'); } }; rd.readAsText(file); }
+    function doExport(){
+      const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='tt-database.json'; a.click(); URL.revokeObjectURL(url);
+    }
+    function doImport(file){
+      if(!file) return; const rd=new FileReader();
+      rd.onload=async()=>{ try{ DB=JSON.parse(rd.result); await saveLive(window._ref); renderAll(); setBanner('online','Imported ✓'); setTimeout(()=>setBanner('online','Connected ✓ Live scores are syncing'),1200); }catch{ alert('Invalid JSON'); } };
+      rd.readAsText(file);
+    }
     function doReset(){ if(!confirm('Reset all data?')) return; DB=structuredClone(defaultData); saveLive(window._ref).then(renderAll); }
-    document.getElementById('btn-export').onclick=doExport;
-    document.getElementById('inp-import').onchange=(e)=>doImport(e.target.files?.[0]);
-    document.getElementById('btn-reset').onclick=doReset;
+    const exp=document.getElementById('btn-export');
+    const imp=document.getElementById('inp-import');
+    const rst=document.getElementById('btn-reset');
+    if(exp) exp.onclick=doExport; if(imp) imp.onchange=(e)=>doImport(e.target.files?.[0]); if(rst) rst.onclick=doReset;
+
+    const adminBtn=document.getElementById('btn-admin');
+    if(adminBtn){
+      adminBtn.onclick=()=>{
+        if(isAdmin){ setAdmin(false); setBanner('online','Admin logged out'); }
+        else {
+          const p=prompt('Enter PIN (panitia)');
+          if(p===ADMIN_PIN){ setAdmin(true); setBanner('online','Admin mode enabled'); }
+          else alert('Wrong PIN');
+        }
+      };
+    }
+    loadAdmin(); updateAdminUI();
   }
+
   function wireTabs(){
     const btnSched=document.getElementById('tabbtn-schedule');
     const btnStand=document.getElementById('tabbtn-standings');
@@ -339,11 +374,5 @@
     catch(e){ console.warn('Live init failed',e); setBanner('offline','Offline mode — check Firebase rules / databaseURL (' + (e?.code || e?.message || 'unknown error') + ')'); renderAll(); }
   })();
   </script>
-  <div style="position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
-            font-size: 8px; color: #555;">
-    &copy; 2025 Muhammad Abdul Haq
-</div>
-
-
 </body>
 </html>
