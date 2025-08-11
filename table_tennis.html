@@ -40,13 +40,13 @@
     /* Schedule layout (cleaner) */
     .slot{border:1px solid var(--line);border-radius:12px;padding:12px}
     .slot-title{font-weight:700;margin-bottom:8px}
-    .match-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+    .match-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
     .match-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
     .flex{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .name-line{font-weight:600;font-size:16px;white-space:nowrap}
+    .name-line{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #cbd5e1;border-radius:999px;font-size:12px;color:var(--ink);background:#fff;margin-left:6px}
-    .set-row{display:grid;grid-template-columns:64px 1fr 16px 1fr;align-items:center;gap:8px;margin:6px 0}
-    .score{max-width:90px;width:100%;text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:16px}
+    .set-row{display:grid;grid-template-columns:56px 1fr 12px 1fr;align-items:center;gap:6px;margin:6px 0}
+    .score{max-width:70px;width:100%;text-align:center;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:16px}
     .score::-webkit-outer-spin-button,.score::-webkit-inner-spin-button{appearance:none;margin:0}
     .score[type=number]{appearance:textfield}
 
@@ -56,6 +56,15 @@
     /* Pairs cards: compact tiles (no full-width stretch) */
     #teams-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
     #teams-grid>.card{width:240px;flex:0 0 240px}
+
+    /* --- Mobile tweaks --- */
+    @media(max-width:480px){
+      .container{padding:12px}
+      .name-line{font-size:14px}
+      .score{max-width:56px;padding:6px}
+      #table-standings .muted{display:none}
+      #teams-grid>.card{flex:1 1 calc(50% - 12px);max-width:calc(50% - 12px);width:auto}
+    }
   </style>
 </head>
 <body>
