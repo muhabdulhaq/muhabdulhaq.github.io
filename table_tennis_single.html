@@ -6,13 +6,14 @@
   <title>Table Tennis — Singles League (Weekly)</title>
   <style>
     :root{--muted:#64748b;--line:#e2e8f0;--ink:#0f172a;--chip:#f1f5f9}
+    *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;background:#f8fafc;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif}
-    .container{max-width:1200px;margin:0 auto;padding:16px}
+    .container{max-width:1040px;margin:0 auto;padding:16px}
+    @media(max-width:480px){.container{padding:14px}}
     h1{font-size:clamp(20px,2.6vw,32px);margin:0 0 6px}
     .wrap{display:flex;gap:8px;flex-wrap:wrap}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}
-    .btn.ghost{background:transparent}
     .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(15,23,42,.06)}
     .muted{color:var(--muted)} .small{font-size:12px}
     .chip{background:#f1f5f9;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;margin:2px;display:inline-block}
@@ -45,7 +46,7 @@
     thead th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
     .num{text-align:center}
     .standings-note{margin-top:8px}
-
+    #table-standings{min-width:720px}
     .nowrap{white-space:nowrap}
 
     /* Status banner */
@@ -64,11 +65,8 @@
           <span class="chip">Win by: 2</span>
         </div>
       </div>
-      <div class="wrap">
+      <div class="wrap" style="align-items:center">
         <div id="admin-only" class="wrap" style="display:none">
-          <button class="btn" id="btn-export">Export JSON</button>
-          <label class="btn" for="inp-import" role="button">Import JSON</label>
-          <input id="inp-import" type="file" accept="application/json" style="display:none" />
           <div class="wrap" style="align-items:center">
             <span class="small muted">Season start</span>
             <input id="season-start" type="date" style="width:auto" />
