@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Table Tennis — Singles League (Weekly)</title>
+  <style>
+    :root{--muted:#64748b;--line:#e2e8f0;--ink:#0f172a;--chip:#f1f5f9}
+    html,body{margin:0;background:#f8fafc;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    h1{font-size:clamp(20px,2.6vw,32px);margin:0 0 6px}
+    .wrap{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}
+    .btn.ghost{background:transparent}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(15,23,42,.06)}
+    .muted{color:var(--muted)} .small{font-size:12px}
+    .chip{background:#f1f5f9;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;margin:2px;display:inline-block}
+
+    /* Tabs */
+    .tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow:auto}
+    .tab{padding:10px 14px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;background:#fff;cursor:pointer;white-space:nowrap}
+    .tab[aria-selected="true"]{background:#0f172a;color:#fff;border-color:#0f172a}
+    .tabpanel{display:none}
+    .tabpanel.active{display:block}
+
+    /* Widgets */
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type=text], select, input[type=number]{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    .row{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
+    .col-3{grid-column:span 3} .col-4{grid-column:span 4} .col-5{grid-column:span 5} .col-6{grid-column:span 6} .col-8{grid-column:span 8} .col-12{grid-column:span 12}
+    @media(max-width:760px){ .col-3,.col-4,.col-5,.col-6,.col-8{grid-column:span 12} }
+
+    /* Matches */
+    .match-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+    .score{width:64px;text-align:center;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:16px}
+    .score::-webkit-outer-spin-button,.score::-webkit-inner-spin-button{appearance:none;margin:0}
+    .score[type=number]{appearance:textfield}
+    .set-row{display:grid;grid-template-columns:60px 72px 12px 72px;gap:8px;align-items:center;margin:6px 0}
+    .name-line{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* Standings */
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+    thead th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .num{text-align:center}
+    .standings-note{margin-top:8px}
+
+    /* Status banner */
+    #status-banner{display:none;margin:8px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="wrap" style="align-items:flex-end;justify-content:space-between">
+      <div>
+        <h1>Singles League</h1>
+        <div class="muted small">Best of 3 to 21 (win-by-2) • Weekly standings • Firebase synced</div>
+        <div style="margin-top:6px">
+          <span class="chip">Sets: 3</span>
+          <span class="chip">Target: 21</span>
+          <span class="chip">Win by: 2</span>
+        </div>
+      </div>
+      <div class="wrap">
+        <div id="admin-only" class="wrap" style="display:none">
+          <button class="btn" id="btn-export">Export JSON</button>
+          <label class="btn" for="inp-import" role="button">Import JSON</label>
+          <input id="inp-import" type="file" accept="application/json" style="display:none" />
+        </div>
+        <button class="btn" id="btn-admin">Panitia Login</button>
+      </div>
+    </header>
+
+    <div id="status-banner" aria-live="polite"></div>
+
+    <section class="card">
+      <div class="tabs" role="tablist" aria-label="Main tabs">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="tab-matches" id="tabbtn-matches">Matches</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="tab-standings" id="tabbtn-standings">Standings</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="tab-players" id="tabbtn-players">Players</button>
+      </div>
+
+      <!-- Matches -->
+      <div id="tab-matches" class="tabpanel active" role="tabpanel" aria-labelledby="tabbtn-matches">
+        <div class="wrap" style="align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <span class="small muted">Week</span>
+            <input id="week-input" type="number" min="1" value="1" style="width:90px" />
+          </div>
+          <div class="wrap small muted">Only admins can add/edit results</div>
+        </div>
+
+        <div id="match-form" class="card" style="display:none;margin-bottom:12px">
+          <div class="row">
+            <div class="col-4">
+              <label>Player A</label>
+              <select id="sel-a"></select>
+            </div>
+            <div class="col-4">
+              <label>Player B</label>
+              <select id="sel-b"></select>
+            </div>
+            <div class="col-4">
+              <label>&nbsp;</label>
+              <button class="btn primary" id="btn-add-match">Add Match</button>
+            </div>
+          </div>
+          <div style="height:8px"></div>
+          <div id="sets-editor"></div>
+        </div>
+
+        <div id="matches-list" class="row" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))"></div>
+      </div>
+
+      <!-- Standings -->
+      <div id="tab-standings" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-standings">
+        <div class="wrap" style="align-items:center;gap:16px;margin-bottom:12px">
+          <div>
+            <span class="small muted">Week</span>
+            <input id="week-stand" type="number" min="1" value="1" style="width:90px" />
+          </div>
+          <label class="small" style="display:flex;gap:6px;align-items:center"><input id="week-all" type="checkbox" /> All weeks</label>
+          <div class="chip">Per‑week / All</div>
+        </div>
+        <div style="overflow:auto">
+          <table id="table-standings" aria-label="Weekly Standings"></table>
+        </div>
+        <div class="small muted standings-note">Only matches in the selected week are included.</div>
+      </div>
+
+      <!-- Players -->
+      <div id="tab-players" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-players">
+        <div id="players-admin" class="card" style="display:none;margin-bottom:12px">
+          <div class="row">
+            <div class="col-8">
+              <label>Add player</label>
+              <input id="inp-player" type="text" placeholder="Player name" />
+            </div>
+            <div class="col-4" style="align-self:end">
+              <button class="btn primary" id="btn-add-player">Add</button>
+            </div>
+          </div>
+        </div>
+        <div id="players-grid" class="row" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script>
+  // ===== Firebase config (same project) =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyBkEzMVdvGEipOHsPvUiSWR5t7oEfHTnyQ",
+    authDomain: "tabletennis-44feb.firebaseapp.com",
+    databaseURL: "https://tabletennis-44feb-default-rtdb.firebaseio.com",
+    projectId: "tabletennis-44feb",
+    storageBucket: "tabletennis-44feb.firebasestorage.app",
+    messagingSenderId: "66554309754",
+    appId: "1:66554309754:web:ded58ca57b4f1e51899fc3"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const DB_PATH = 'tt_single/v1';
+
+  // ===== Admin PIN =====
+  const ADMIN_PIN = '1608'; // change if needed
+  let isAdmin = false;
+  function loadAdmin(){ try{ isAdmin = localStorage.getItem('tt_single_admin')==='1'; }catch{ isAdmin=false; } }
+  function setAdmin(flag){ isAdmin = !!flag; try{ if(isAdmin) localStorage.setItem('tt_single_admin','1'); else localStorage.removeItem('tt_single_admin'); }catch{} updateAdminUI(); renderAll(); }
+  function updateAdminUI(){
+    const aOnly=document.getElementById('admin-only'); if(aOnly) aOnly.style.display=isAdmin?'flex':'none';
+    document.getElementById('match-form').style.display = isAdmin?'block':'none';
+    document.getElementById('players-admin').style.display = isAdmin?'block':'none';
+    const btn = document.getElementById('btn-admin'); if(btn) btn.textContent = isAdmin? 'Logout Admin':'Panitia Login';
+  }
+
+  // ===== Default DB =====
+  const defaultDB = {
+    meta: { rules: { sets: 3, minToWin: 21, winBy: 2 } },
+    players: { /* id: {name, active:true} */ },
+    matches: { /* mid: {week, p1, p2, sets:[{a,b},{a,b},{a,b}], ts} */ }
+  };
+  let DB = structuredClone(defaultDB);
+
+  function normalize(data){
+    const base = structuredClone(defaultDB);
+    if(data && typeof data==='object'){
+      if(data.players && typeof data.players==='object') base.players = data.players;
+      if(data.matches && typeof data.matches==='object') base.matches = data.matches;
+      if(data.meta && data.meta.rules) base.meta = data.meta;
+    }
+    return base;
+  }
+
+  // ===== Helpers =====
+  const $ = (sel)=>document.querySelector(sel);
+  function idFromName(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+('-'+Math.random().toString(36).slice(2,6)); }
+  function allPlayers(activeOnly=true){ return Object.entries(DB.players).filter(([id,p])=> activeOnly? p.active!==false : true); }
+  function playerName(id){ return DB.players[id]?.name || id; }
+  function emptySets(n=3){ return Array.from({length:n},()=>({a:'',b:''})); }
+  function validateSet(a,b){ if(a===''||b==='') return true; a=+a; b=+b; if([a,b].some(x=>Number.isNaN(x)||x<0)) return false; const max=Math.max(a,b), diff=Math.abs(a-b); if(max<DB.meta.rules.minToWin) return false; if(diff<DB.meta.rules.winBy) return false; return true; }
+  function winnerFromSets(sets){ let wA=0,wB=0; for(const s of sets){ if(s.a===''||s.b==='') continue; if(!validateSet(s.a,s.b)) return null; (+s.a>+s.b)? wA++:wB++; } if(!wA && !wB) return null; if(wA===wB) return null; return wA>wB?'A':'B'; }
+
+  function weekValue(){ return Math.max(1, +$('#week-input').value||1); }
+  function weekStandValue(){ const all = document.getElementById('week-all')?.checked; return all ? 'all' : Math.max(1, +$('#week-stand').value||1); }
+
+  // ===== Live sync =====
+  async function initLive(){
+    const ref = db.ref(DB_PATH);
+    ref.on('value', (snap)=>{ const v=snap.val(); if(v){ DB=normalize(v); renderAll(); } });
+    const once = await ref.get(); if(!once.exists()) await ref.set(DB);
+    return ref;
+  }
+  function saveLive(){ return db.ref(DB_PATH).set(DB); }
+
+  // ===== Renders =====
+  function renderPlayers(){
+    const g=$('#players-grid'); g.innerHTML='';
+    const items = allPlayers(false).sort((a,b)=> playerName(a[0]).localeCompare(playerName(b[0])));
+    for(const [id,p] of items){
+      const card=document.createElement('div'); card.className='card';
+      card.innerHTML=`<div class="wrap" style="justify-content:space-between;align-items:center">
+          <strong>${playerName(id)}</strong>
+          ${ isAdmin ? `<div class="wrap">${p.active!==false?`<button class=\"btn\" data-act=\"deactivate\" data-id=\"${id}\">Remove</button>`:`<button class=\"btn\" data-act=\"activate\" data-id=\"${id}\">Restore</button>`}</div>`:'' }
+        </div>`;
+      g.appendChild(card);
+    }
+  }
+
+  function renderPlayerSelects(){
+    const selA=$('#sel-a'), selB=$('#sel-b');
+    if(!selA||!selB) return;
+    function options(){ return allPlayers(true).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join(''); }
+    selA.innerHTML = options(); selB.innerHTML = options();
+  }
+
+  function renderMatchForm(){
+    const cont=$('#sets-editor'); cont.innerHTML='';
+    const sets=emptySets(DB.meta.rules.sets);
+    sets.forEach((s,i)=>{
+      const row=document.createElement('div'); row.className='set-row';
+      row.innerHTML=`<span class="small muted">Set ${i+1}</span>
+        <input class="score" inputmode="numeric" pattern="[0-9]*" data-i="${i}" data-f="a" />
+        <span class="muted">-</span>
+        <input class="score" inputmode="numeric" pattern="[0-9]*" data-i="${i}" data-f="b" />`;
+      cont.appendChild(row);
+    });
+  }
+
+  function matchCardHTML(mid,m){
+    const chips = (m.sets||[]).map(s=> (s.a!==''&&s.b!=='')?`<span class="chip">${s.a}-${s.b}</span>`:'').join('');
+    const who = winnerFromSets(m.sets||[]);
+    const status = who? `<span class="small" style="color:#16a34a">Winner: <strong>${who==='A'?playerName(m.p1):playerName(m.p2)}</strong></span>`:
+                        `<span class="small muted">Not finished</span>`;
+    return `<div class="match-card">
+      <div class="wrap" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="small muted">Week ${m.week}</div>
+          <div class="name-line">${playerName(m.p1)} <span class="muted">vs</span> ${playerName(m.p2)}</div>
+        </div>
+        <div class="wrap">${chips}</div>
+      </div>
+      <div style="height:6px"></div>
+      <div class="small" id="st-${mid}">${status}</div>
+      ${ isAdmin ? `<div class="wrap" style="margin-top:8px"><button class="btn" data-act="del" data-id="${mid}">Delete</button></div>`:'' }
+    </div>`;
+  }
+
+  function renderMatches(){
+    const w=weekValue();
+    const box=$('#matches-list'); box.innerHTML='';
+    const list = Object.entries(DB.matches).filter(([id,m])=> +m.week===+w)
+                .sort((a,b)=> (a[1].ts||0)-(b[1].ts||0));
+    if(list.length===0){ box.innerHTML = '<div class="muted small">No matches yet for this week.</div>'; return; }
+    list.forEach(([mid,m])=>{ const d=document.createElement('div'); d.innerHTML=matchCardHTML(mid,m); box.appendChild(d.firstChild); });
+  }
+
+  function renderStandings(){
+    const w=weekStandValue();
+    const all = (w==='all');
+    const tbl=$('#table-standings');
+    const stats={};
+    for(const [id,p] of allPlayers(true)){ stats[id]={id,played:0,wins:0,losses:0,setsFor:0,setsAgainst:0,pointsFor:0,pointsAgainst:0}; }
+    const matches = Object.values(DB.matches).filter(m=> all ? true : +m.week===+w);
+    for(const m of matches){
+      const A=stats[m.p1], B=stats[m.p2]; if(!A||!B) continue;
+      let wA=0,wB=0,pA=0,pB=0,any=false;
+      (m.sets||[]).forEach(s=>{ if(s.a===''||s.b==='') return; if(!validateSet(s.a,s.b)) return; any=true; pA+=+s.a; pB+=+s.b; (+s.a>+s.b)? wA++:wB++; });
+      if(!any) continue;
+      A.played++; B.played++;
+      A.setsFor+=wA; A.setsAgainst+=wB; B.setsFor+=wB; B.setsAgainst+=wA;
+      A.pointsFor+=pA; A.pointsAgainst+=pB; B.pointsFor+=pB; B.pointsAgainst+=pA;
+      if(wA>wB){A.wins++;B.losses++;} else if(wB>wA){B.wins++;A.losses++;}
+    }
+    const rows=Object.values(stats).sort((x,y)=> y.wins-x.wins || (y.setsFor-y.setsAgainst)-(x.setsFor-x.setsAgainst) || (y.pointsFor-y.pointsAgainst)-(x.pointsFor-x.pointsAgainst) || playerName(x.id).localeCompare(playerName(y.id)));
+    tbl.innerHTML = `<thead><tr><th>#</th><th>Player</th><th>Played</th><th>Win</th><th>Loss</th><th>Sets (+/-)</th><th>Points (+/-)</th></tr></thead><tbody></tbody>`;
+    const tbody=tbl.querySelector('tbody');
+    rows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      const cells=[
+        i+1,
+        `<strong>${playerName(r.id)}</strong>`,
+        r.played,
+        r.wins,
+        r.losses,
+        `${r.setsFor} : ${r.setsAgainst} <span class="muted">(${r.setsFor-r.setsAgainst})</span>`,
+        `${r.pointsFor} : ${r.pointsAgainst} <span class="muted">(${r.pointsFor-r.pointsAgainst})</span>`
+      ];
+      cells.forEach(c=>{ const td=document.createElement('td'); td.innerHTML=c; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    const note = document.querySelector('.standings-note');
+    if(note){ note.textContent = (w==='all') ? 'All matches across all weeks are included.' : 'Only matches in the selected week are included.'; }
+    const ws = document.getElementById('week-stand'); const wa = document.getElementById('week-all'); if(ws && wa){ ws.disabled = wa.checked; }
+  }
+
+  function renderAll(){ renderPlayerSelects(); renderMatchForm(); renderMatches(); renderPlayers(); renderStandings(); updateAdminUI(); }
+
+  // ===== Events =====
+  document.getElementById('btn-admin').addEventListener('click',()=>{
+    if(isAdmin){ setAdmin(false); setBanner('online','Admin logged out'); }
+    else{ const p=prompt('Enter PIN (panitia)'); if(p===ADMIN_PIN){ setAdmin(true); setBanner('online','Admin mode enabled'); } else alert('Wrong PIN'); }
+  });
+
+  document.getElementById('btn-add-player').addEventListener('click', async ()=>{
+    if(!isAdmin){ alert('Admin only — please login with PIN'); return; }
+    const name=$('#inp-player').value.trim(); if(!name) return alert('Enter a name');
+    const id=idFromName(name); DB.players[id]={name, active:true}; $('#inp-player').value=''; await saveLive(); renderAll();
+  });
+  const _inpP=document.getElementById('inp-player');
+  if(_inpP){ _inpP.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ document.getElementById('btn-add-player').click(); }}); }
+
+  document.getElementById('players-grid').addEventListener('click', async (e)=>{
+    const b=e.target.closest('button'); if(!b||!isAdmin) return; const id=b.dataset.id; const act=b.dataset.act;
+    if(act==='deactivate'){ DB.players[id].active=false; }
+    if(act==='activate'){ DB.players[id].active=true; }
+    await saveLive(); renderAll();
+  });
+
+  document.getElementById('week-input').addEventListener('change',()=>{ renderMatches(); });
+  document.getElementById('week-stand').addEventListener('change',()=>{ renderStandings(); });
+  const _wa=document.getElementById('week-all'); if(_wa){ _wa.addEventListener('change',()=>{ const ws=document.getElementById('week-stand'); if(ws) ws.disabled=_wa.checked; renderStandings(); }); }
+
+  document.getElementById('btn-add-match').addEventListener('click', async ()=>{
+    if(!isAdmin) return;
+    const p1=$('#sel-a').value, p2=$('#sel-b').value; if(!p1||!p2||p1===p2) return alert('Choose two different players');
+    const sets=[]; document.querySelectorAll('#sets-editor .score').forEach(inp=>{ const i=+inp.dataset.i, f=inp.dataset.f; sets[i]||(sets[i]={a:'',b:''}); sets[i][f]=inp.value; });
+    for(const s of sets){ if(s.a!==''&&s.b!=='' && !validateSet(s.a,s.b)) return alert('Invalid set. 21 points minimum and win-by-2.'); }
+    const mid='w'+weekValue()+'-'+Date.now().toString(36);
+    DB.matches[mid]={week:weekValue(), p1, p2, sets, ts:Date.now()};
+    await saveLive(); renderAll();
+  });
+
+  document.getElementById('matches-list').addEventListener('click', async (e)=>{
+    const b=e.target.closest('button'); if(!b||!isAdmin) return; if(b.dataset.act!=='del') return; const id=b.dataset.id; if(!confirm('Delete this match?')) return; delete DB.matches[id]; await saveLive(); renderAll();
+  });
+
+  function wireTabs(){
+    const tabs=[
+      {btn:'tabbtn-matches',panel:'tab-matches'},
+      {btn:'tabbtn-standings',panel:'tab-standings'},
+      {btn:'tabbtn-players',panel:'tab-players'}
+    ];
+    function select(id){
+      tabs.forEach(t=>{
+        const b=document.getElementById(t.btn);
+        const p=document.getElementById(t.panel);
+        const active=(t.panel===id);
+        if(b) b.setAttribute('aria-selected', active);
+        if(p) p.classList.toggle('active', active);
+      });
+    }
+    tabs.forEach(t=>{ const b=document.getElementById(t.btn); if(b) b.addEventListener('click', ()=> select(t.panel)); });
+  }
+
+  // ===== Banner & Boot =====
+  function setBanner(kind, msg){ const el=$('#status-banner'); const colors={loading:'#fef9c3',online:'#dcfce7',offline:'#fee2e2'}; el.style.display='block'; el.style.background=colors[kind]||'#f1f5f9'; el.textContent=msg; }
+
+  (async ()=>{
+    setBanner('loading','Loading… connecting to live database');
+    wireTabs();
+    loadAdmin(); updateAdminUI();
+    try{ await initLive(); setBanner('online','Connected ✓ Live scores are syncing'); }
+    catch(e){ console.warn(e); setBanner('offline','Offline mode — check Firebase rules'); }
+    renderAll();
+  })();
+  </script>
+</body>
+</html>
