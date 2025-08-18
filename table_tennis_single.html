@@ -46,6 +46,8 @@
     .num{text-align:center}
     .standings-note{margin-top:8px}
 
+    .nowrap{white-space:nowrap}
+
     /* Status banner */
     #status-banner{display:none;margin:8px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
   </style>
@@ -67,6 +69,10 @@
           <button class="btn" id="btn-export">Export JSON</button>
           <label class="btn" for="inp-import" role="button">Import JSON</label>
           <input id="inp-import" type="file" accept="application/json" style="display:none" />
+          <div class="wrap" style="align-items:center">
+            <span class="small muted">Season start</span>
+            <input id="season-start" type="date" style="width:auto" />
+          </div>
         </div>
         <button class="btn" id="btn-admin">Panitia Login</button>
       </div>
@@ -87,6 +93,7 @@
           <div>
             <span class="small muted">Week</span>
             <input id="week-input" type="number" min="1" value="1" style="width:90px" />
+            <div id="week-label" class="small muted"></div>
           </div>
           <div class="wrap small muted">Only admins can add/edit results</div>
         </div>
@@ -119,6 +126,7 @@
           <div>
             <span class="small muted">Week</span>
             <input id="week-stand" type="number" min="1" value="1" style="width:90px" />
+            <div id="week-stand-label" class="small muted"></div>
           </div>
           <label class="small" style="display:flex;gap:6px;align-items:center"><input id="week-all" type="checkbox" /> All weeks</label>
           <div class="chip">Per‑week / All</div>
@@ -175,11 +183,12 @@
     document.getElementById('match-form').style.display = isAdmin?'block':'none';
     document.getElementById('players-admin').style.display = isAdmin?'block':'none';
     const btn = document.getElementById('btn-admin'); if(btn) btn.textContent = isAdmin? 'Logout Admin':'Panitia Login';
+    const ss = document.getElementById('season-start'); if(ss) ss.value = DB.meta.seasonStart || '';
   }
 
   // ===== Default DB =====
   const defaultDB = {
-    meta: { rules: { sets: 3, minToWin: 21, winBy: 2 } },
+    meta: { rules: { sets: 3, minToWin: 21, winBy: 2 }, seasonStart: null },
     players: { /* id: {name, active:true} */ },
     matches: { /* mid: {week, p1, p2, sets:[{a,b},{a,b},{a,b}], ts} */ }
   };
@@ -206,6 +215,23 @@
 
   function weekValue(){ return Math.max(1, +$('#week-input').value||1); }
   function weekStandValue(){ const all = document.getElementById('week-all')?.checked; return all ? 'all' : Math.max(1, +$('#week-stand').value||1); }
+
+  // Week helpers (labels)
+  function parseDate(s){ const d=new Date(s); return Number.isNaN(d.getTime())? null : d; }
+  function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function fmtDate(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+  function weekRangeFromSeason(startStr, w){ const d0=parseDate(startStr); if(!d0||!w||w==='all') return null; const start=addDays(d0,(+w-1)*7); const end=addDays(start,6); return {start,end}; }
+  function updateWeekLabels(){
+    const ss=DB.meta?.seasonStart; const wl=document.getElementById('week-label'); const wsl=document.getElementById('week-stand-label');
+    const w1=Math.max(1, +document.getElementById('week-input').value||1);
+    const w2=document.getElementById('week-all')?.checked? 'all' : (Math.max(1, +document.getElementById('week-stand').value||1));
+    if(ss){
+      const r1=weekRangeFromSeason(ss,w1); if(wl) wl.textContent = r1? `(${fmtDate(r1.start)} – ${fmtDate(r1.end)})` : '';
+      const r2=weekRangeFromSeason(ss,w2); if(wsl) wsl.textContent = (w2==='all')? '(All weeks)' : (r2? `(${fmtDate(r2.start)} – ${fmtDate(r2.end)})` : '');
+    } else {
+      if(wl) wl.textContent=''; if(wsl) wsl.textContent = (w2==='all')? '(All weeks)' : '';
+    }
+  }
 
   // ===== Live sync =====
   async function initLive(){
@@ -306,8 +332,8 @@
         r.played,
         r.wins,
         r.losses,
-        `${r.setsFor} : ${r.setsAgainst} <span class="muted">(${r.setsFor-r.setsAgainst})</span>`,
-        `${r.pointsFor} : ${r.pointsAgainst} <span class="muted">(${r.pointsFor-r.pointsAgainst})</span>`
+        `<span class=\"nowrap\">${r.setsFor} : ${r.setsAgainst} <span class=\"muted\">(${r.setsFor-r.setsAgainst})<\/span><\/span>`,
+        `<span class=\"nowrap\">${r.pointsFor} : ${r.pointsAgainst} <span class=\"muted\">(${r.pointsFor-r.pointsAgainst})<\/span><\/span>`
       ];
       cells.forEach(c=>{ const td=document.createElement('td'); td.innerHTML=c; tr.appendChild(td); });
       tbody.appendChild(tr);
@@ -317,7 +343,7 @@
     const ws = document.getElementById('week-stand'); const wa = document.getElementById('week-all'); if(ws && wa){ ws.disabled = wa.checked; }
   }
 
-  function renderAll(){ renderPlayerSelects(); renderMatchForm(); renderMatches(); renderPlayers(); renderStandings(); updateAdminUI(); }
+  function renderAll(){ renderPlayerSelects(); renderMatchForm(); renderMatches(); renderPlayers(); renderStandings(); updateWeekLabels(); updateAdminUI(); }
 
   // ===== Events =====
   document.getElementById('btn-admin').addEventListener('click',()=>{
@@ -340,9 +366,9 @@
     await saveLive(); renderAll();
   });
 
-  document.getElementById('week-input').addEventListener('change',()=>{ renderMatches(); });
-  document.getElementById('week-stand').addEventListener('change',()=>{ renderStandings(); });
-  const _wa=document.getElementById('week-all'); if(_wa){ _wa.addEventListener('change',()=>{ const ws=document.getElementById('week-stand'); if(ws) ws.disabled=_wa.checked; renderStandings(); }); }
+  document.getElementById('week-input').addEventListener('change',()=>{ renderMatches(); updateWeekLabels(); });
+  document.getElementById('week-stand').addEventListener('change',()=>{ renderStandings(); updateWeekLabels(); });
+  const _wa=document.getElementById('week-all'); if(_wa){ _wa.addEventListener('change',()=>{ const ws=document.getElementById('week-stand'); if(ws) ws.disabled=_wa.checked; renderStandings(); updateWeekLabels(); }); }
 
   document.getElementById('btn-add-match').addEventListener('click', async ()=>{
     if(!isAdmin) return;
@@ -386,6 +412,7 @@
     try{ await initLive(); setBanner('online','Connected ✓ Live scores are syncing'); }
     catch(e){ console.warn(e); setBanner('offline','Offline mode — check Firebase rules'); }
     renderAll();
+    const ss=document.getElementById('season-start'); if(ss){ ss.addEventListener('change', async (e)=>{ if(!isAdmin){ alert('Admin only — please login with PIN'); e.preventDefault(); return; } DB.meta.seasonStart = e.target.value || null; await saveLive(); updateWeekLabels(); }); }
   })();
   </script>
 </body>
