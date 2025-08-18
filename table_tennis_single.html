@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Table Tennis — Singles League (Weekly)</title>
+  <title>Table Tennis — Singles League (PPI TMU)</title>
   <style>
     :root{--muted:#64748b;--line:#e2e8f0;--ink:#0f172a;--chip:#f1f5f9}
     *,*::before,*::after{box-sizing:border-box}
@@ -58,7 +58,7 @@
     <header class="wrap" style="align-items:flex-end;justify-content:space-between">
       <div>
         <h1>Singles League</h1>
-        <div class="muted small">Best of 3 to 21 (win-by-2) • Weekly standings • Firebase synced</div>
+        <div class="muted small">Best of 3 to 21 (win-by-2) • Weekly standings • PPI TMU</div>
         <div style="margin-top:6px">
           <span class="chip">Sets: 3</span>
           <span class="chip">Target: 21</span>
@@ -413,5 +413,9 @@
     const ss=document.getElementById('season-start'); if(ss){ ss.addEventListener('change', async (e)=>{ if(!isAdmin){ alert('Admin only — please login with PIN'); e.preventDefault(); return; } DB.meta.seasonStart = e.target.value || null; await saveLive(); updateWeekLabels(); }); }
   })();
   </script>
+  <div style="position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            font-size: 6px; color: #555;">
+    &copy; 2025 Muhammad Abdul Haq
+</div>
 </body>
 </html>
