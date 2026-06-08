@@ -22,7 +22,30 @@
   <!-- Main Content -->
   <main class="max-w-4xl mx-auto px-6 pb-16 pt-8">
     <h1 class="text-3xl font-bold text-stone-900 mb-10">Projects & Demonstrations</h1>
-    
+ 
+    <!-- Sport Analytics Section -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-semibold text-stone-800 mb-6 border-b border-stone-200 pb-2">Sport Analytics</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white border border-stone-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group" onclick="openVideoModal('youtube', 'https://youtu.be/psafax_WRk0?si=eSSqUMD2dJv0f4Kd')">
+          <div class="relative h-56 overflow-hidden border-b border-stone-100">
+            <img src="./assets/images/15086386.png" alt="Badminton Analysis" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute inset-0 bg-stone-900/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-stone-900 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-semibold text-stone-900 mb-2">Badminton Shuttlecock & Player Detection</h3>
+            <p class="text-stone-600 leading-relaxed text-sm">
+              Computer vision models specialized for detecting high-speed, small objects like shuttlecocks, and mapping player positions on the court.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Robotics Section -->
     <section class="mb-12">
       <h2 class="text-2xl font-semibold text-stone-800 mb-6 border-b border-stone-200 pb-2">Robotics</h2>
@@ -57,29 +80,6 @@
             <h3 class="text-xl font-semibold text-stone-900 mb-2">Autonomous Ship</h3>
             <p class="text-stone-600 leading-relaxed text-sm">
               Robust maneuvering and environmental sensing integrated with computer vision for autonomous surface vehicles.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Sport Analytics Section -->
-    <section class="mb-12">
-      <h2 class="text-2xl font-semibold text-stone-800 mb-6 border-b border-stone-200 pb-2">Sport Analytics</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-white border border-stone-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group" onclick="openVideoModal('youtube', 'https://www.youtube.com/embed/dQw4w9WgXcQ')">
-          <div class="relative h-56 overflow-hidden border-b border-stone-100">
-            <img src="./assets/images/15086386.png" alt="Badminton Analysis" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute inset-0 bg-stone-900/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-stone-900 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
-              </div>
-            </div>
-          </div>
-          <div class="p-6">
-            <h3 class="text-xl font-semibold text-stone-900 mb-2">Badminton Shuttlecock & Player Detection</h3>
-            <p class="text-stone-600 leading-relaxed text-sm">
-              Computer vision models specialized for detecting high-speed, small objects like shuttlecocks, and mapping player positions on the court.
             </p>
           </div>
         </div>
