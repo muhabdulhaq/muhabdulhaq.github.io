@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materi WAN & Teknologi Jaringan</title>
+<title>Materi Pak Haqi</title>
 <style>
   :root {
     --bg:#eef2f6; --panel:#fff; --ink:#14233a; --muted:#5d6c82; --line:#d5dde8;
@@ -35,11 +35,6 @@
   .unduh { font-size:.9rem; font-weight:600; color:var(--accent); border:1px solid var(--accent); padding:7px 14px; border-radius:999px; white-space:nowrap; }
   .row:hover .unduh { background:var(--accent); color:#fff; }
   .ppt{--c:var(--ppt)} .pdf{--c:var(--pdf)} .doc{--c:var(--doc)} .xls{--c:var(--xls)} .zip{--c:var(--zip)} .pkt{--c:var(--pkt)}
-  .crumb { margin:14px 0 0; font-size:.95rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px; }
-  .crumb a { color:var(--accent); text-decoration:none; font-weight:600; }
-  .crumb a:hover { text-decoration:underline; }
-  .dir { --c:var(--accent); }
-  .dir .badge { background:var(--accent-soft); color:var(--accent); border:2px solid var(--accent); }
   .pesan { padding:40px 20px; text-align:center; color:var(--muted); }
   footer { margin-top:22px; color:var(--muted); font-size:.88rem; }
   @media (max-width:520px) {
@@ -58,119 +53,104 @@
       <input class="search" id="cari" type="search" placeholder="Cari materi, misalnya Module 10" aria-label="Cari materi" autocomplete="off">
       <span class="jumlah" id="jumlah"></span>
     </div>
-    <nav class="crumb" id="crumb" aria-label="Lokasi folder"></nav>
   </header>
   <main class="rack" id="rack"><div class="pesan">Memuat daftar materi...</div></main>
-  <footer>Daftar folder dan file ini diambil otomatis dari repository GitHub.</footer>
+  <footer>Lecturer: Muhammad Abdul Haq, S.Tr.T, M.Eng., Ph.D.</P></footer>
 </div>
 
 <script>
 // ===== PENGATURAN =====
-const JUDUL    = 'Materi Kuliah';
+const JUDUL    = 'Materi WAN & Teknologi Jaringan';
 const SUBJUDUL = 'Universitas Muhammadiyah Yogyakarta';
-const OWNER  = 'muhabdulhaq';
-const REPO   = 'muhabdulhaq.github.io';
-const FOLDER = 'lecture';   // kosong = otomatis sesuai lokasi halaman ini
+// Biarkan kosong agar terdeteksi otomatis dari alamat situs (username.github.io/nama-repo).
+// Isi manual hanya jika memakai domain sendiri atau mau memakai subfolder.
+const OWNER  = '';   // contoh: 'budi123'
+const REPO   = '';   // contoh: 'materi-wan'
+const FOLDER = '';   // contoh: 'modul' (kosong = folder utama repo)
 const ABAIKAN = ['index.html', 'README.md', 'LICENSE', 'CNAME', '.gitignore', '.nojekyll'];
-const ABAIKAN_FOLDER = ['assets', 'node_modules'];
 // ======================
 
 document.getElementById('judul').textContent = JUDUL;
 document.getElementById('subjudul').textContent = SUBJUDUL;
 document.title = JUDUL;
 
-const rack = document.getElementById('rack'), jumlah = document.getElementById('jumlah'),
-      cari = document.getElementById('cari'), crumb = document.getElementById('crumb');
+const rack = document.getElementById('rack'), jumlah = document.getElementById('jumlah'), cari = document.getElementById('cari');
 const kelas = {pptx:'ppt',ppt:'ppt',pdf:'pdf',docx:'doc',doc:'doc',xlsx:'xls',xls:'xls',zip:'zip',rar:'zip',pkt:'pkt',pka:'pkt'};
-const cache = {};
-
-// Folder tempat halaman ini berada di dalam repo
-function folderDasar() {
-  if (FOLDER) return FOLDER.replace(/^\/|\/$/g, '');
-  let seg = location.pathname.split('/').filter(Boolean);
-  if (seg.length && seg[seg.length - 1].includes('.')) seg.pop();
-  if (seg[0] === REPO) seg = seg.slice(1);
-  return seg.map(decodeURIComponent).join('/');
-}
-const DASAR = folderDasar();
-const PREFIX = FOLDER ? DASAR + '/' : '';
-
-const enc = p => p.split('/').map(encodeURIComponent).join('/');
-const sub = () => decodeURIComponent(location.hash.slice(1)).replace(/^\/|\/$/g, '');
 
 function ukuran(b) {
   const u = ['B','KB','MB','GB']; let i = 0;
   while (b >= 1024 && i < 3) { b /= 1024; i++; }
   return (i ? b.toFixed(1) : b) + ' ' + u[i];
 }
+
 function pesan(teks) { rack.innerHTML = ''; const d = document.createElement('div'); d.className = 'pesan'; d.textContent = teks; rack.appendChild(d); }
 
-async function ambil(path) {
-  const lengkap = [DASAR, path].filter(Boolean).join('/');
-  if (cache[lengkap]) return cache[lengkap];
-  const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${enc(lengkap)}`);
-  if (res.status === 403) throw new Error('Batas permintaan GitHub tercapai. Coba lagi beberapa menit lagi.');
-  if (!res.ok) throw new Error(`Folder "${lengkap || '(utama)'}" di ${OWNER}/${REPO} tidak bisa dibuka (kode ${res.status}). Pastikan repository publik.`);
-  const data = await res.json();
-  if (!Array.isArray(data)) throw new Error('Alamat ini bukan folder.');
-  return (cache[lengkap] = data);
+let PREFIX = '';
+
+function kandidat() {
+  const host = location.hostname;
+  const owner = OWNER || (host.endsWith('.github.io') ? host.split('.')[0] : '');
+  let seg = location.pathname.split('/').filter(Boolean);
+  if (seg.length && seg[seg.length - 1].includes('.')) seg.pop();   // buang nama file, mis. index.html
+  const out = [];
+  if (REPO) out.push({ owner, repo: REPO, folder: FOLDER });
+  else {
+    if (seg.length) out.push({ owner, repo: seg[0], folder: FOLDER || seg.slice(1).join('/') });
+    out.push({ owner, repo: owner + '.github.io', folder: FOLDER || seg.join('/') });
+  }
+  return out.filter(k => k.owner);
 }
 
-function tampilkanCrumb(path) {
-  crumb.innerHTML = '';
-  const root = document.createElement('a'); root.href = '#'; root.textContent = 'Semua matkul';
-  crumb.appendChild(root);
-  let acc = '';
-  path.split('/').filter(Boolean).forEach(p => {
-    acc += (acc ? '/' : '') + p;
-    crumb.appendChild(document.createTextNode('/'));
-    const a = document.createElement('a'); a.href = '#' + enc(acc); a.textContent = p; crumb.appendChild(a);
-  });
+async function muat() {
+  const daftar = kandidat();
+  if (!daftar.length) return pesan('Repository tidak terdeteksi. Isi OWNER dan REPO di bagian pengaturan index.html.');
+  const dicoba = [];
+  for (const k of daftar) {
+    const url = `https://api.github.com/repos/${k.owner}/${k.repo}/contents/${k.folder}`;
+    try {
+      const res = await fetch(url);
+      if (res.status === 403) return pesan('Batas permintaan GitHub tercapai. Coba lagi beberapa menit lagi.');
+      if (!res.ok) { dicoba.push(`${k.owner}/${k.repo}/${k.folder} (${res.status})`); continue; }
+      const data = await res.json();
+      if (!Array.isArray(data)) { dicoba.push(`${k.owner}/${k.repo}/${k.folder} (bukan folder)`); continue; }
+      PREFIX = FOLDER ? FOLDER.replace(/\/$/, '') + '/' : '';
+      const files = data
+        .filter(f => f.type === 'file' && f.name[0] !== '.' && !ABAIKAN.includes(f.name))
+        .sort((x, y) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' }));
+      if (!files.length) return pesan(`Tidak ada file di ${k.owner}/${k.repo}/${k.folder}. Jika file ada di folder lain, isi FOLDER di pengaturan.`);
+      return tampil(files);
+    } catch (e) { dicoba.push(`${k.owner}/${k.repo} (${e.message})`); }
+  }
+  pesan('Daftar gagal dimuat. Sudah dicoba: ' + dicoba.join(', ') + '. Pastikan repository publik, lalu isi OWNER, REPO, dan FOLDER di pengaturan.');
 }
 
-function baris(tipe, nama, path, ukur) {
-  const ext = tipe === 'dir' ? '' : (nama.split('.').pop() || '').toLowerCase();
-  const a = document.createElement('a');
-  a.className = 'row ' + (tipe === 'dir' ? 'dir' : (kelas[ext] || ''));
-  if (tipe === 'dir') a.href = '#' + enc(path);
-  else { a.href = PREFIX + enc(path); a.setAttribute('download', ''); }
-  a.dataset.nama = nama.toLowerCase();
-  a.innerHTML = '<span class="badge"></span><span><span class="nama"></span><span class="meta"></span></span><span class="unduh"></span>';
-  a.querySelector('.badge').textContent = tipe === 'dir' ? 'DIR' : (ext.toUpperCase() || 'FILE');
-  a.querySelector('.nama').textContent = nama;
-  a.querySelector('.meta').textContent = tipe === 'dir' ? 'Folder' : ukuran(ukur);
-  a.querySelector('.unduh').textContent = tipe === 'dir' ? 'Buka' : 'Unduh';
-  return a;
+function tampil(files) {
+  rack.innerHTML = '';
+  if (!files.length) return pesan('Belum ada file. Upload file ke repository dan akan muncul di sini.');
+  for (const f of files) {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const a = document.createElement('a');
+    a.className = 'row ' + (kelas[ext] || '');
+    a.href = PREFIX + encodeURIComponent(f.name);
+    a.setAttribute('download', '');
+    a.dataset.nama = f.name.toLowerCase();
+    a.innerHTML = '<span class="badge"></span><span><span class="nama"></span><span class="meta"></span></span><span class="unduh">Unduh</span>';
+    a.querySelector('.badge').textContent = ext.toUpperCase() || 'FILE';
+    a.querySelector('.nama').textContent = f.name;
+    a.querySelector('.meta').textContent = ukuran(f.size);
+    rack.appendChild(a);
+  }
+  const nihil = document.createElement('div');
+  nihil.className = 'pesan'; nihil.hidden = true; nihil.textContent = 'Tidak ada materi yang cocok dengan pencarian.';
+  rack.appendChild(nihil);
+  jumlah.textContent = files.length + ' file';
+  cari.oninput = () => {
+    const q = cari.value.trim().toLowerCase(); let n = 0;
+    rack.querySelectorAll('.row').forEach(r => { const ok = r.dataset.nama.includes(q); r.hidden = !ok; if (ok) n++; });
+    jumlah.textContent = n + ' file'; nihil.hidden = n !== 0;
+  };
 }
-
-async function render() {
-  const path = sub();
-  cari.value = '';
-  tampilkanCrumb(path);
-  pesan('Memuat daftar materi...');
-  try {
-    const data = await ambil(path);
-    const abc = (x, y) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' });
-    const dirs  = data.filter(f => f.type === 'dir' && f.name[0] !== '.' && !ABAIKAN_FOLDER.includes(f.name)).sort(abc);
-    const files = data.filter(f => f.type === 'file' && f.name[0] !== '.' && !ABAIKAN.includes(f.name)).sort(abc);
-    rack.innerHTML = '';
-    if (!dirs.length && !files.length) return pesan('Folder ini masih kosong.');
-    dirs.forEach(d => rack.appendChild(baris('dir', d.name, [path, d.name].filter(Boolean).join('/'))));
-    files.forEach(f => rack.appendChild(baris('file', f.name, [path, f.name].filter(Boolean).join('/'), f.size)));
-    const nihil = document.createElement('div');
-    nihil.className = 'pesan'; nihil.hidden = true; nihil.textContent = 'Tidak ada yang cocok dengan pencarian.';
-    rack.appendChild(nihil);
-    const total = dirs.length + files.length;
-    jumlah.textContent = total + ' item';
-    cari.oninput = () => {
-      const q = cari.value.trim().toLowerCase(); let n = 0;
-      rack.querySelectorAll('.row').forEach(r => { const ok = r.dataset.nama.includes(q); r.hidden = !ok; if (ok) n++; });
-      jumlah.textContent = n + ' item'; nihil.hidden = n !== 0;
-    };
-  } catch (e) { jumlah.textContent = ''; pesan(e.message); }
-}
-window.addEventListener('hashchange', render);
-render();
+muat();
 </script>
 </body>
 </html>
